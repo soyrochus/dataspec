@@ -1,0 +1,22 @@
+projects:
+  - name: "My Application"
+    description: "Internal modernization project"
+    epics:
+      - id: "EPIC-1"
+        name: "User Management"
+        user_stories:
+          - id: "US-001"
+            name: "Register new user"
+            story: "As a visitor, I want to register so that I can access member-only features."
+            priority: "high"
+            acceptance_criteria:
+              - "Validate email format"
+              - "Confirmation email sent"
+            tasks:
+              - id: "T1"
+                description: "Implement registration endpoint"
+                sub_tasks:
+                  - id: "T1.1"
+                    description: "Validate email"
+                    sub_tasks: []
+        sub_epics: []

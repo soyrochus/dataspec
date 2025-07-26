@@ -1,0 +1,70 @@
+<<root>>:
+  projects:
+    type: array
+    items:
+      $ref: '#/Project'
+
+Project:
+  properties:
+    name:
+      type: string
+      description: "Project name"
+    description:
+      type: string
+      optional: true 
+      description: "Optional project overview"
+    epics:
+      type: array
+      description: "Top-level functional groupings"
+      items:
+        $ref: '#/Epic'
+
+Epic:
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    description:
+      type: string
+      optional: true
+    user_stories:
+      type: array
+      items:
+        $ref: '#/UserStory'
+    sub_epics:
+      type: array
+      items:
+        $ref: '#/Epic'
+
+UserStory:
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    story:
+      type: string
+      description: "The user story statement"
+    priority:
+      type: string
+      description: "Priority level (e.g. high, medium, low)"
+    acceptance_criteria:
+      type: array
+      items:
+        type: string
+    tasks:
+      type: array
+      items:
+        $ref: '#/Task'
+
+Task:
+  properties:
+    id:
+      type: string
+    description:
+      type: string
+    sub_tasks:
+      type: array
+      items:
+        $ref: '#/Task'
