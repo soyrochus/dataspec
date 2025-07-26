@@ -4,7 +4,7 @@
 
 ## 1. Overview
 
-The **Reagent Data Schema Definition Syntax** enables clear, concise modeling of structured data using YAML. It draws inspiration from OpenAPI’s schema object notation but introduces the reserved `<<root>>` identifier to explicitly mark the model entry point. Schemas are designed to be both machine- and human-readable, supporting recursive and nested object types.
+The **Reagent Data Schema Definition Syntax** enables clear, concise modeling of structured data using YAML. It draws inspiration from OpenAPI’s schema object notation but introduces the reser## 10. Example recursive type: "Person" Schemaed `<<root>>` identifier to explicitly mark the model entry point. Schemas are designed to be both machine- and human-readable, supporting recursive and nested object types.
 
 ## 2. Core Concepts
 
@@ -34,17 +34,305 @@ The **Reagent Data Schema Definition Syntax** enables clear, concise modeling of
 * Properties can be declared optional with the attribute “`optional`” of type `boolean` (`true` or `false`)  
 * By default properties are mandatory (as if declared with `optional: false`).
 
-### 2.5 Type References
+### 2.6 Type References
 
 * Use `$ref: '#/TypeName'` to refer to other defined types.  
 * This supports recursive and nested structures (e.g., sub-tasks, sub-epics).
 
-### 2.6 Documentation
+### 2.7 Documentation
 
 * Use the `description:` key to document any field or type.  
 * All documentation is optional but strongly encouraged.
 
-## 3. Example Schema
+## 3. Types Reference
+
+This section provides a comprehensive reference of all supported types in the Reagent Data Schema Definition Syntax.
+
+### 3.1 Primitive Types
+
+#### 3.1.1 String Type
+```yaml
+field_name:
+  type: string
+  description: "Text data"
+```
+
+#### 3.1.2 Integer Type
+```yaml
+field_name:
+  type: integer
+  description: "Whole numbers (positive, negative, or zero)"
+```
+
+#### 3.1.3 Number Type
+```yaml
+field_name:
+  type: number
+  description: "Floating-point numbers"
+```
+
+#### 3.1.4 Boolean Type
+```yaml
+field_name:
+  type: boolean
+  description: "True or false values"
+```
+
+### 3.2 Collection Types
+
+#### 3.2.1 Array Type
+Arrays contain ordered lists of items of the same type.
+
+```yaml
+# Array of primitives
+tags:
+  type: array
+  items:
+    type: string
+
+# Array of objects
+users:
+  type: array
+  items:
+    $ref: '#/User'
+
+# Nested arrays (matrix)
+matrix:
+  type: array
+  items:
+    type: array
+    items:
+      type: number
+```
+
+#### 3.2.2 Map Type
+Maps represent key-value collections (dictionaries/hash tables).
+
+```yaml
+# String-keyed map
+config:
+  type: map
+  keys:
+    type: string
+  values:
+    type: string
+
+# Integer-keyed map
+scores_by_year:
+  type: map
+  keys:
+    type: integer
+  values:
+    type: number
+
+# Map with complex values
+departments:
+  type: map
+  keys:
+    type: string
+  values:
+    type: array
+    items:
+      $ref: '#/Employee'
+
+# Map with object values
+locations:
+  type: map
+  keys:
+    type: string
+  values:
+    $ref: '#/Address'
+```
+
+**Map Key Constraints:**
+- Keys must be either `string` or `integer` type
+- JSON serialization converts integer keys to strings automatically
+- Maps do not allow additional properties beyond the defined value type
+
+### 3.3 Object Types
+
+#### 3.3.1 Named Object Types
+Objects are defined at the top level with a unique name and referenced using `$ref`.
+
+```yaml
+User:
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    email:
+      type: string
+      optional: true
+    preferences:
+      type: map
+      keys:
+        type: string
+      values:
+        type: string
+```
+
+#### 3.3.2 Object References
+Reference named types using the `$ref` syntax:
+
+```yaml
+<<root>>:
+  current_user:
+    $ref: '#/User'
+  all_users:
+    type: array
+    items:
+      $ref: '#/User'
+```
+
+### 3.4 Optional Fields
+
+Any field can be marked as optional using the `optional: true` attribute:
+
+```yaml
+Person:
+  properties:
+    name:
+      type: string
+      # Required by default
+    nickname:
+      type: string
+      optional: true
+    age:
+      type: integer
+      optional: true
+    address:
+      $ref: '#/Address'
+      optional: true
+```
+
+### 3.5 Recursive Types
+
+Types can reference themselves to create recursive structures:
+
+```yaml
+TreeNode:
+  properties:
+    value:
+      type: string
+    children:
+      type: array
+      items:
+        $ref: '#/TreeNode'
+      optional: true
+
+FileSystemItem:
+  properties:
+    name:
+      type: string
+    type:
+      type: string
+    children:
+      type: array
+      items:
+        $ref: '#/FileSystemItem'
+      optional: true
+```
+
+### 3.6 Complex Nested Structures
+
+Combine all types to create sophisticated data models:
+
+```yaml
+<<root>>:
+  organization:
+    $ref: '#/Organization'
+
+Organization:
+  properties:
+    name:
+      type: string
+    departments:
+      type: map
+      keys:
+        type: string
+      values:
+        $ref: '#/Department'
+    metadata:
+      type: map
+      keys:
+        type: string
+      values:
+        type: string
+      optional: true
+
+Department:
+  properties:
+    name:
+      type: string
+    manager:
+      $ref: '#/Employee'
+    employees:
+      type: array
+      items:
+        $ref: '#/Employee'
+    budget_by_quarter:
+      type: map
+      keys:
+        type: integer
+      values:
+        type: number
+
+Employee:
+  properties:
+    id:
+      type: string
+    full_name:
+      type: string
+    skills:
+      type: array
+      items:
+        type: string
+    contact:
+      $ref: '#/ContactInfo'
+    reports:
+      type: array
+      items:
+        $ref: '#/Employee'
+      optional: true
+
+ContactInfo:
+  properties:
+    email:
+      type: string
+    phone:
+      type: string
+      optional: true
+    address:
+      $ref: '#/Address'
+      optional: true
+
+Address:
+  properties:
+    street:
+      type: string
+    city:
+      type: string
+    postal_code:
+      type: string
+    country:
+      type: string
+    coordinates:
+      type: array
+      items:
+        type: number
+      optional: true
+```
+
+### 3.7 Type Constraints and Validation Rules
+
+- **No Generic Objects:** The syntax does not support generic `type: object` as field types. Use named types and `$ref` instead.
+- **Strict Type Checking:** All fields must have explicit type definitions.
+- **No Null Types:** Null values are not supported as a type. Use `optional: true` for optional fields.
+- **Key Type Restrictions:** Map keys are restricted to `string` and `integer` types only.
+- **Required by Default:** All fields are required unless explicitly marked with `optional: true`.
+
+## 4. Example Schema
 
 ```yaml
 <<root>>:  
@@ -118,36 +406,36 @@ Task:
         $ref: '#/Task'
 ```
 
-## 4. How-To Author a Reagent Data Schema
+## 5. How-To Author a Reagent Data Schema
 
-### 4.1 Start with the Root
+### 5.1 Start with the Root
 
 * Begin your schema with the `<<root>>:` block.  
 * Define the top-level fields and their types or references.
 
-### 4.2 Define Each Type
+### 5.2 Define Each Type
 
 * For each object referenced (e.g., `Project`, `Epic`), define a top-level block named exactly as referenced.  
 * Under each, specify a `properties:` block mapping field names to their types, references, or array types.
 
-### 4.3 Use Arrays and Recursion as Needed
+### 5.3 Use Arrays and Recursion as Needed
 
 * For list fields, use `type: array` and specify `items:`.  
 * To enable recursive structures (like sub-tasks), reference the current type via `$ref`.
 
-### 4.4 Add Documentation
+### 5.4 Add Documentation
 
 * Use `description:` to clarify the meaning of types and fields.  
 * Documenting schemas increases clarity and improves developer experience.
 
-### 4.5 Supported Types
+### 5.5 Supported Types
 
 * **Primitives:** string, integer, boolean, number  
 * **Arrays:** `type: array` with `items:` (which may be a primitive or `$ref`)  
 * **Objects:** defined using `properties:`, referenced by `$ref`  
 * **No other types are needed for most use cases.**
 
-## 5. Example Data Instance
+## 6. Example Data Instance
 
 Given the above schema, an instance might look like:
 
@@ -176,7 +464,7 @@ projects:
         sub_epics: []
 ```
 
-## 6. Design Guidelines
+## 7. Design Guidelines
 
 * All types must be defined at the top level.  
 * Always reference other types using `$ref: '#/TypeName'`.  
@@ -184,13 +472,13 @@ projects:
 * The schema MUST have a single `<<root>>` entry point.  
 * The root object must be fully defined by its properties; no circularity at the root.
 
-## 7. Comparison to OpenAPI
+## 8. Comparison to OpenAPI
 
 * `<<root>>` replaces OpenAPI’s `components/schemas` entry point.  
 * `type: object` is omitted where implied (root and property containers).  
 * `$ref` syntax and other conventions are preserved for familiarity and extensibility.
 
-## 8. Extensions
+## 9. Extensions
 
 To support advanced validation, you may later extend this spec with:
 
@@ -360,7 +648,7 @@ The sample `schema_val.py` will work for both YAML and JSON files, provided you 
 }
 ```
 
-## **Appendix III:  Usage Examples
+## Appendix III:  Usage Examples
 
 Validate YAML data and YAML schema:
 

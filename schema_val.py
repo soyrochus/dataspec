@@ -56,61 +56,133 @@ def is_json_schema(schema_obj):
 
 def convert_reagent_to_jsonschema(reagent_schema):
     """
-    Convert a reagent-style schema to JSON Schema,
-    supporting 'optional: true' for properties (default: required).
+    Convert a strict Reagent schema to JSON Schema,
+    supporting type: map (with keys/values) and banning generic object.
     """
+    def error(msg):
+        raise ValueError(f"Schema error: {msg}")
+
     def ref_to_json(ref):
         return ref.replace('#/', '#/definitions/')
 
-    def rewrite_and_require(obj):
-        if isinstance(obj, dict):
-            out = {}
-            for k, v in obj.items():
-                if k == '$ref':
-                    out[k] = ref_to_json(v)
-                elif k == 'properties':
-                    out[k] = {}
-                    required = []
-                    for prop, prop_def in v.items():
-                        is_optional = (
-                            isinstance(prop_def, dict) and prop_def.get("optional", False)
-                        )
-                        prop_def_noopt = dict(prop_def) if isinstance(prop_def, dict) else prop_def
-                        if isinstance(prop_def_noopt, dict) and "optional" in prop_def_noopt:
-                            del prop_def_noopt["optional"]
-                        out[k][prop] = rewrite_and_require(prop_def_noopt)
-                        if not is_optional:
-                            required.append(prop)
-                    if required:
-                        out['required'] = required
-                    out['additionalProperties'] = False
-                else:
-                    out[k] = rewrite_and_require(v)
-            return out
-        elif isinstance(obj, list):
-            return [rewrite_and_require(i) for i in obj]
-        else:
+    def is_named_type(name):
+        return name in reagent_schema and "properties" in reagent_schema[name]
+
+    def convert_field(obj, context=None):
+        if not isinstance(obj, dict):
             return obj
 
-    definitions = {k: v for k, v in reagent_schema.items() if k != '<<root>>'}
-    definitions = {k: rewrite_and_require(v) for k, v in definitions.items()}
-    root_props = reagent_schema['<<root>>']
+        # Primitives, arrays, map, or $ref only!
+        t = obj.get("type")
+        if t == "map":
+            keys = obj.get("keys")
+            values = obj.get("values")
+            if keys is None or values is None:
+                error(f"type: map must have keys and values: {context}")
+            if not isinstance(keys, dict) or not isinstance(values, dict):
+                error(f"Map keys and values must be objects: {context}")
+            
+            # Type assertion for the linter
+            assert isinstance(keys, dict)
+            assert isinstance(values, dict)
+            
+            key_type = keys.get("type")
+            if key_type not in ("string", "integer"):
+                error(f"Map keys must be string or integer: {context}")
+            
+            # For JSON Schema, we need to handle integer keys specially
+            # Since JSON object keys are always strings, we use pattern validation for integer keys
+            if key_type == "integer":
+                return {    
+                    "type": "object",
+                    "patternProperties": {
+                        "^[0-9]+$": convert_field(values, context=f"{context} (map values)")
+                    },
+                    "additionalProperties": False
+                }
+            else:
+                # String keys - use normal additionalProperties
+                return {
+                    "type": "object",
+                    "additionalProperties": convert_field(values, context=f"{context} (map values)")
+                }
+        elif t == "array":
+            items = obj.get("items")
+            if not items:
+                error(f"type: array must have items: {context}")
+            return {
+                "type": "array",
+                "items": convert_field(items, context=f"{context} (array items)")
+            }
+        elif t in ("string", "integer", "number", "boolean"):
+            r = {"type": t}
+            for k in ("description",):  # preserve description, etc. if present
+                if k in obj:
+                    r[k] = obj[k]
+            return r
+        elif t == "object":
+            # Only allowed for top-level named types with properties
+            if context is not None:
+                error("Generic 'object' as property is forbidden (use named types or map)")
+            properties = obj.get("properties")
+            if not properties:
+                error("type: object must have properties for named types")
+            # handled below in definitions
+        elif "properties" in obj:
+            # Should only happen for top-level named types
+            error("Inline object definitions are not allowed. Use $ref to named types.")
+        elif "$ref" in obj:
+            return {"$ref": ref_to_json(obj["$ref"])}
+        elif t == "null":
+            error("Null type is not supported.")
+        else:
+            error(f"Unsupported or missing type in {obj} (context: {context})")
+        return obj  # fallback (should never happen)
 
-    def root_required(props):
-        req = []
-        for k, v in props.items():
-            if not (isinstance(v, dict) and v.get("optional", False)):
-                req.append(k)
-        return req
+    # Convert definitions (top-level types only)
+    definitions = {}
+    for name, typ in reagent_schema.items():
+        if name == "<<root>>":
+            continue
+        if not isinstance(typ, dict) or "properties" not in typ:
+            error(f"Named type '{name}' must have properties")
+        out = {"type": "object", "properties": {}, "additionalProperties": False}
+        required = []
+        for prop, propdef in typ["properties"].items():
+            if propdef.get("optional", False):
+                pass
+            else:
+                required.append(prop)
+            pdef = dict(propdef)
+            pdef.pop("optional", None)
+            out["properties"][prop] = convert_field(pdef, context=f"{name}.{prop}")
+        if required:
+            out["required"] = required
+        definitions[name] = out
 
+    # Root schema
+    root_props = reagent_schema["<<root>>"]
+    
+    # Handle required fields at root level (check for optional: true)
+    root_required = []
+    for prop, propdef in root_props.items():
+        if not (isinstance(propdef, dict) and propdef.get("optional", False)):
+            root_required.append(prop)
+    
     json_schema = {
         "type": "object",
-        "properties": rewrite_and_require(root_props),
+        "properties": {},
         "definitions": definitions,
-        "required": root_required(root_props),
-        "additionalProperties": False
+        "additionalProperties": False,
+        "required": root_required
     }
+    for prop, propdef in root_props.items():
+        pdef = dict(propdef)
+        pdef.pop("optional", None)
+        json_schema["properties"][prop] = convert_field(pdef, context=f"<<root>>.{prop}")
+
     return json_schema
+
 
 def validate_data(data, schema, raise_error=True):
     """
