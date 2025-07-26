@@ -5,6 +5,15 @@ import yaml
 import json
 import jsonschema
 
+def load_yaml_or_json(s):
+    """
+    Load YAML or JSON from a string.
+    """
+    try:
+        return yaml.safe_load(s)
+    except Exception:
+        return json.loads(s)
+
 def load_file(filename, force_format=None):
     """
     Load YAML or JSON file as Python object.
@@ -60,15 +69,12 @@ def convert_reagent_to_jsonschema(reagent_schema):
                 if k == '$ref':
                     out[k] = ref_to_json(v)
                 elif k == 'properties':
-                    # Recursively process properties and determine required fields
                     out[k] = {}
                     required = []
                     for prop, prop_def in v.items():
-                        # If property has optional: true, do not require it
                         is_optional = (
                             isinstance(prop_def, dict) and prop_def.get("optional", False)
                         )
-                        # Always copy property, but strip 'optional'
                         prop_def_noopt = dict(prop_def) if isinstance(prop_def, dict) else prop_def
                         if isinstance(prop_def_noopt, dict) and "optional" in prop_def_noopt:
                             del prop_def_noopt["optional"]
@@ -86,14 +92,10 @@ def convert_reagent_to_jsonschema(reagent_schema):
         else:
             return obj
 
-    # All types except <<root>> become definitions
     definitions = {k: v for k, v in reagent_schema.items() if k != '<<root>>'}
     definitions = {k: rewrite_and_require(v) for k, v in definitions.items()}
-
-    # Root properties
     root_props = reagent_schema['<<root>>']
 
-    # Handle required at the root (same logic: optional: true disables required)
     def root_required(props):
         req = []
         for k, v in props.items():
@@ -110,6 +112,38 @@ def convert_reagent_to_jsonschema(reagent_schema):
     }
     return json_schema
 
+def validate_data(data, schema, raise_error=True):
+    """
+    Validate a Python dict (data) against a schema (Reagent or JSON Schema).
+    Returns True if valid, else returns (or raises) a human-readable error string.
+    """
+    if is_json_schema(schema):
+        json_schema = schema
+    else:
+        json_schema = convert_reagent_to_jsonschema(schema)
+
+    try:
+        jsonschema.validate(instance=data, schema=json_schema)
+        return True
+    except jsonschema.ValidationError as e:
+        msg = f"Validation failed: {e.message}\n"
+        if e.absolute_path:
+            msg += "Location: " + " -> ".join([str(p) for p in e.absolute_path]) + "\n"
+        else:
+            msg += "Location: (root)\n"
+        if hasattr(e, 'instance'):
+            snippet = json.dumps(e.instance, indent=2, ensure_ascii=False)
+            if len(snippet) > 400:
+                snippet = snippet[:400] + "... (truncated)"
+            msg += "Data snippet: " + snippet
+        if raise_error:
+            raise ValueError(msg)
+        else:
+            return msg
+
+# ------------------------------
+# Command-line interface support
+# ------------------------------
 def main():
     parser = argparse.ArgumentParser(description="Validate YAML/JSON data against a Reagent or JSON Schema.")
     parser.add_argument("-d", "--data-file", required=True, help="Path to data file (.yml, .yaml, or .json)")
@@ -118,32 +152,19 @@ def main():
     parser.add_argument("--schema-format", choices=['yaml', 'json'], help="Force schema format (yaml or json)")
     args = parser.parse_args()
 
-    # Load files (data and schema) as Python objects
+    # Load files as Python objects
     data = load_file(args.data_file, force_format=args.data_format)
     schema_obj = load_file(args.schema_file, force_format=args.schema_format)
 
-    # Detect schema style
-    if is_json_schema(schema_obj):
-        json_schema = schema_obj
-    else:
-        json_schema = convert_reagent_to_jsonschema(schema_obj)
-
     try:
-        jsonschema.validate(instance=data, schema=json_schema)
-        print("✅ Validation successful: Data matches the schema.")
-    except jsonschema.ValidationError as e:
-        print("\n❌ Validation failed:\n")
-        print("  Reason:", e.message)
-        if e.absolute_path:
-            print("  Location:", " -> ".join([str(p) for p in e.absolute_path]))
+        result = validate_data(data, schema_obj, raise_error=False)
+        if result is True:
+            print("✅ Validation successful: Data matches the schema.")
+            sys.exit(0)
         else:
-            print("  Location: (root)")
-        if hasattr(e, 'instance'):
-            snippet = json.dumps(e.instance, indent=2, ensure_ascii=False)
-            if len(snippet) > 400:
-                snippet = snippet[:400] + "... (truncated)"
-            print("  Data snippet:", snippet)
-        sys.exit(1)
+            print("\n❌ Validation failed:\n")
+            print(result)
+            sys.exit(1)
     except Exception as ex:
         print(f"Unexpected error during validation: {ex}")
         sys.exit(3)
