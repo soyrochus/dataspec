@@ -54,9 +54,9 @@ def is_json_schema(schema_obj):
                 return True
     return False
 
-def convert_reagent_to_jsonschema(reagent_schema):
+def convert_yaml_to_jsonschema(yaml_schema):
     """
-    Convert a strict Reagent schema to JSON Schema,
+    Convert a strict Yaml schema to JSON Schema,
     supporting type: map (with keys/values) and banning generic object.
     """
     def error(msg):
@@ -66,7 +66,7 @@ def convert_reagent_to_jsonschema(reagent_schema):
         return ref.replace('#/', '#/definitions/')
 
     def is_named_type(name):
-        return name in reagent_schema and "properties" in reagent_schema[name]
+        return name in yaml_schema and "properties" in yaml_schema[name]
 
     def convert_field(obj, context=None):
         if not isinstance(obj, dict):
@@ -141,7 +141,7 @@ def convert_reagent_to_jsonschema(reagent_schema):
 
     # Convert definitions (top-level types only)
     definitions = {}
-    for name, typ in reagent_schema.items():
+    for name, typ in yaml_schema.items():
         if name == "<<root>>":
             continue
         if not isinstance(typ, dict) or "properties" not in typ:
@@ -161,7 +161,7 @@ def convert_reagent_to_jsonschema(reagent_schema):
         definitions[name] = out
 
     # Root schema
-    root_props = reagent_schema["<<root>>"]
+    root_props = yaml_schema["<<root>>"]
     
     # Handle required fields at root level (check for optional: true)
     root_required = []
@@ -186,13 +186,13 @@ def convert_reagent_to_jsonschema(reagent_schema):
 
 def validate_data(data, schema, raise_error=True):
     """
-    Validate a Python dict (data) against a schema (Reagent or JSON Schema).
+    Validate a Python dict (data) against a schema (Yaml or JSON Schema).
     Returns True if valid, else returns (or raises) a human-readable error string.
     """
     if is_json_schema(schema):
         json_schema = schema
     else:
-        json_schema = convert_reagent_to_jsonschema(schema)
+        json_schema = convert_yaml_to_jsonschema(schema)
 
     try:
         jsonschema.validate(instance=data, schema=json_schema)
@@ -217,7 +217,7 @@ def validate_data(data, schema, raise_error=True):
 # Command-line interface support
 # ------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Validate YAML/JSON data against a Reagent or JSON Schema.")
+    parser = argparse.ArgumentParser(description="Validate YAML/JSON data against a Yaml or JSON Schema.")
     parser.add_argument("-d", "--data-file", required=True, help="Path to data file (.yml, .yaml, or .json)")
     parser.add_argument("-s", "--schema-file", required=True, help="Path to schema file (.yml, .yaml, or .json)")
     parser.add_argument("--data-format", choices=['yaml', 'json'], help="Force data format (yaml or json)")

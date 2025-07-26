@@ -3,7 +3,7 @@ import tempfile
 import os
 from schema_val import validate_data, load_yaml_or_json, load_file
 
-# Test data for all supported types according to the Reagent Schema Definition Syntax
+# Test data for all supported types according to the Yaml Schema Definition Syntax
 COMPREHENSIVE_SCHEMA_YAML = """
 <<root>>:
   test_data:
@@ -359,7 +359,7 @@ VALID_DATA_JSON = {
 
 
 class TestSchemaValidation:
-    """Test all supported types in the Reagent Schema Definition Syntax"""
+    """Test all supported types in the Yaml Schema Definition Syntax"""
 
     def test_yaml_schema_yaml_data(self):
         """Test YAML schema with YAML data"""

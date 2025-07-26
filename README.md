@@ -1,10 +1,10 @@
-# Reagent Data Schema Definition Syntax (Draft)
+# Yaml Data Schema Definition Syntax (Draft)
 
-**Version:** 1.0 **Status:** Draft **Purpose:** This document defines the syntax, conventions, and usage guidelines for authoring human-readable, hierarchical data model schemas in YAML for use within Reagent and related tooling.
+**Version:** 1.0 **Status:** Draft **Purpose:** This document defines the syntax, conventions, and usage guidelines for authoring human-readable, hierarchical data model schemas in YAML for use within tooling which need type validation for data structures.
 
 ## 1. Overview
 
-The **Reagent Data Schema Definition Syntax** enables clear, concise modeling of structured data using YAML. It draws inspiration from OpenAPI’s schema object notation but introduces the reser## 10. Example recursive type: "Person" Schemaed `<<root>>` identifier to explicitly mark the model entry point. Schemas are designed to be both machine- and human-readable, supporting recursive and nested object types.
+The **Yaml Data Schema Definition Syntax** enables clear, concise modeling of structured data using YAML. It draws inspiration from OpenAPI’s schema object notation but introduces the reser## 10. Example recursive type: "Person" Schemaed `<<root>>` identifier to explicitly mark the model entry point. Schemas are designed to be both machine- and human-readable, supporting recursive and nested object types.
 
 ## 2. Core Concepts
 
@@ -46,7 +46,7 @@ The **Reagent Data Schema Definition Syntax** enables clear, concise modeling of
 
 ## 3. Types Reference
 
-This section provides a comprehensive reference of all supported types in the Reagent Data Schema Definition Syntax.
+This section provides a comprehensive reference of all supported types in the Yaml Data Schema Definition Syntax.
 
 ### 3.1 Primitive Types
 
@@ -406,7 +406,7 @@ Task:
         $ref: '#/Task'
 ```
 
-## 5. How-To Author a Reagent Data Schema
+## 5. How-To Author a Yaml Data Schema
 
 ### 5.1 Start with the Root
 
@@ -515,17 +515,17 @@ Person:
 
 **Q: Can I validate data against these schemas?** A: Yes, with a parser or LLM-based tool. Conversion to JSON Schema is straightforward for enforcement.
 
-## **Appendix II: Using JSON for Reagent Data Schema Definitions**
+## **Appendix II: Using JSON for Yaml Data Schema Definitions**
 
 ### **Overview**
 
-While YAML is preferred for its readability, all Reagent schema and data definitions may be authored in **JSON**.
+While YAML is preferred for its readability, all Yaml schema and data definitions may be authored in **JSON**.
 
 * The schema structure is identical—simply use JSON object/array/field notation instead of YAML.
 
 * This allows compatibility with many editors, tools, and automation pipelines that work natively with JSON.
 
-### **1. Writing a Reagent Schema in JSON**
+### **1. Writing a Yaml Schema in JSON**
 
 **YAML Example:**
 
