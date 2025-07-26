@@ -1,0 +1,60 @@
+{
+  "<<root>>": {
+    "projects": {
+      "type": "array",
+      "items": { "$ref": "#/Project" }
+    }
+  },
+  "Project": {
+    "properties": {
+      "name": { "type": "string" },
+      "description": { "type": "string", "optional": true },
+      "epics": {
+        "type": "array",
+        "items": { "$ref": "#/Epic" }
+      }
+    }
+  },
+  "Epic": {
+    "properties": {
+      "id": { "type": "string" },
+      "name": { "type": "string" },
+      "description": { "type": "string", "optional": true },
+      "user_stories": {
+        "type": "array",
+        "items": { "$ref": "#/UserStory" }
+      },
+      "sub_epics": {
+        "type": "array",
+        "items": { "$ref": "#/Epic" }
+      }
+    }
+  },
+  "UserStory": {
+    "properties": {
+      "id": { "type": "string" },
+      "name": { "type": "string" },
+      "story": { "type": "string" },
+      "priority": { "type": "string", "optional": true },
+      "acceptance_criteria": {
+        "type": "array",
+        "items": { "type": "string" },
+        "optional": true
+      },
+      "tasks": {
+        "type": "array",
+        "items": { "$ref": "#/Task" }
+      }
+    }
+  },
+  "Task": {
+    "properties": {
+      "id": { "type": "string" },
+      "description": { "type": "string" },
+      "sub_tasks": {
+        "type": "array",
+        "items": { "$ref": "#/Task" }
+      }
+    }
+  }
+}
