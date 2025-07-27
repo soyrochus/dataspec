@@ -1,10 +1,8 @@
 # DataSpec: Yaml Data Schema Definition and Query Library
 
-**Version:** 1.## Schema Definition Syntax
-
-DataSpec uses a clear, YAML-based schema definition syntax for describing data structures.*Status:** Production Ready
-
 DataSpec is a comprehensive library for validating, querying, and exploring YAML, JSON, and Python data structures using expressive schemas and path navigation.
+
+DataSpec uses a clear, YAML-based schema definition syntax for describing data structures.
 
 ## Key Features
 
@@ -17,7 +15,7 @@ DataSpec is a comprehensive library for validating, querying, and exploring YAML
 ## Installation
 
 ```bash
-pip install dataspec
+uv sync
 ```
 
 ## Quick Start
@@ -807,3 +805,18 @@ try:
 except (KeyError, IndexError) as e:
     print(f"Path not found: {e}")
 ```
+
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first
+to discuss what you would like to change.
+
+Please make sure to update tests as appropriate.
+
+## Copyright and license
+
+Copyright © 2025 Iwan van der Kleijn
+
+Licensed under the MIT License 
+[MIT](https://choosealicense.com/licenses/mit/)
