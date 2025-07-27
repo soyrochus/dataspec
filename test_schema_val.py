@@ -1,7 +1,7 @@
 import pytest
 import tempfile
 import os
-from schema_val import validate_data, load_yaml_or_json, load_file
+from dataspec import validate, load_yaml_or_json, load_file, search
 
 # Test data for all supported types according to the Yaml Schema Definition Syntax
 COMPREHENSIVE_SCHEMA_YAML = """
@@ -365,21 +365,21 @@ class TestSchemaValidation:
         """Test YAML schema with YAML data"""
         schema = load_yaml_or_json(COMPREHENSIVE_SCHEMA_YAML)
         data = load_yaml_or_json(VALID_DATA_YAML)
-        assert validate_data(data, schema, raise_error=False) is True
+        assert validate(data, schema, raise_error=False) is True
 
     def test_json_schema_json_data(self):
         """Test JSON schema with JSON data"""
-        assert validate_data(VALID_DATA_JSON, COMPREHENSIVE_SCHEMA_JSON, raise_error=False) is True
+        assert validate(VALID_DATA_JSON, COMPREHENSIVE_SCHEMA_JSON, raise_error=False) is True
 
     def test_yaml_schema_json_data(self):
         """Test YAML schema with JSON data"""
         schema = load_yaml_or_json(COMPREHENSIVE_SCHEMA_YAML)
-        assert validate_data(VALID_DATA_JSON, schema, raise_error=False) is True
+        assert validate(VALID_DATA_JSON, schema, raise_error=False) is True
 
     def test_json_schema_yaml_data(self):
         """Test JSON schema with YAML data"""
         data = load_yaml_or_json(VALID_DATA_YAML)
-        assert validate_data(data, COMPREHENSIVE_SCHEMA_JSON, raise_error=False) is True
+        assert validate(data, COMPREHENSIVE_SCHEMA_JSON, raise_error=False) is True
 
     def test_primitive_types(self):
         """Test all primitive types"""
@@ -399,7 +399,7 @@ class TestSchemaValidation:
             "boolean_field": True
         }
         
-        assert validate_data(valid_data, schema, raise_error=False) is True
+        assert validate(valid_data, schema, raise_error=False) is True
 
     def test_nested_arrays(self):
         """Test nested arrays (array of arrays)"""
@@ -419,7 +419,7 @@ class TestSchemaValidation:
             "matrix": [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
         }
         
-        assert validate_data(valid_data, schema, raise_error=False) is True
+        assert validate(valid_data, schema, raise_error=False) is True
 
     def test_map_types(self):
         """Test map/dictionary types"""
@@ -443,7 +443,7 @@ class TestSchemaValidation:
             "integer_map": {"2022": 88.5, "2023": 92.0}  # Use string keys for JSON compatibility
         }
         
-        assert validate_data(valid_data, schema, raise_error=False) is True
+        assert validate(valid_data, schema, raise_error=False) is True
 
     def test_optional_fields(self):
         """Test optional field behavior"""
@@ -459,13 +459,13 @@ class TestSchemaValidation:
             "required_field": "present",
             "optional_field": "also present"
         }
-        assert validate_data(data_with_optional, schema, raise_error=False) is True
+        assert validate(data_with_optional, schema, raise_error=False) is True
         
         # Without optional field
         data_without_optional = {
             "required_field": "present"
         }
-        assert validate_data(data_without_optional, schema, raise_error=False) is True
+        assert validate(data_without_optional, schema, raise_error=False) is True
 
     def test_invalid_missing_required(self):
         """Test validation fails when required field is missing"""
@@ -477,7 +477,7 @@ class TestSchemaValidation:
         
         invalid_data = {}  # Missing required field
         
-        result = validate_data(invalid_data, schema, raise_error=False)
+        result = validate(invalid_data, schema, raise_error=False)
         assert result is not True
         assert "required_field" in result
 
@@ -493,7 +493,7 @@ class TestSchemaValidation:
             "string_field": 123  # Should be string, not integer
         }
         
-        result = validate_data(invalid_data, schema, raise_error=False)
+        result = validate(invalid_data, schema, raise_error=False)
         assert result is not True
         assert "is not of type 'string'" in result
 
@@ -510,7 +510,7 @@ class TestSchemaValidation:
             "unknown_field": "should not be allowed"
         }
         
-        result = validate_data(invalid_data, schema, raise_error=False)
+        result = validate(invalid_data, schema, raise_error=False)
         assert result is not True
         assert "Additional properties are not allowed" in result
 
@@ -531,7 +531,7 @@ class TestSchemaValidation:
             "integer_keyed_map": {"string_key": "value"}  # Key should be integer
         }
         
-        result = validate_data(invalid_data, schema, raise_error=False)
+        result = validate(invalid_data, schema, raise_error=False)
         assert result is not True
 
     def test_file_based_validation(self):
@@ -550,8 +550,12 @@ class TestSchemaValidation:
             # Load and validate
             schema = load_file(schema_file)
             data = load_file(data_file)
-            
-            assert validate_data(data, schema, raise_error=False) is True
+
+            assert validate(data, schema, raise_error=False) is True
+
+    def test_search_function(self):
+        data = load_yaml_or_json(VALID_DATA_YAML)
+        assert search(data, 'test_data.matrix[0][1]') == 2
 
 
 if __name__ == "__main__":

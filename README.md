@@ -1,86 +1,162 @@
-# Yaml Data Schema Definition Syntax (Draft)
+# DataSpec: Yaml Data Schema Definition and Query Library
 
-**Version:** 1.0 **Status:** Draft **Purpose:** This document defines the syntax, conventions, and usage guidelines for authoring human-readable, hierarchical data model schemas in YAML for use within tooling which need type validation for data structures.
+**Version:** 1.## Schema Definition Syntax
+
+DataSpec uses a clear, YAML-based schema definition syntax for describing data structures.*Status:** Production Ready
+
+DataSpec is a comprehensive library for validating, querying, and exploring YAML, JSON, and Python data structures using expressive schemas and path navigation.
+
+## Key Features
+
+- **Schema Validation**: Validate data against hierarchical schemas with support for primitives, arrays, maps, and nested objects
+- **DataPath Querying**: Navigate and extract values from complex data structures using XPath/JSONPath-inspired syntax
+- **Dual Interface**: Both Python API and command-line tool
+- **Format Flexibility**: Works with YAML, JSON, and Python objects seamlessly
+- **Type Safety**: Strict type checking with optional fields and custom validation rules
+
+## Installation
+
+```bash
+pip install dataspec
+```
+
+## Quick Start
+
+### Python API
+
+```python
+from dataspec import load_file, validate, search
+
+# Load and validate data
+data = load_file("data.yaml")
+schema = load_file("schema.yaml")
+validate(data, schema)
+
+# Search within data using DataPath
+epic_id = search(data, "projects[0].epics[0].id")
+user_story = search(data, "projects[id=543].epics[0].user_stories[priority=high]")
+```
+
+### Command Line
+
+```bash
+# Validate data against schema
+dataspec validate --data data.yaml --schema schema.yaml
+
+# Search data using DataPath expressions  
+dataspec search --data data.yaml --path "projects[0].epics[0].id"
+dataspec search --data data.json --path "metrics[2022]"
+```
+
+## DataPath Query Syntax
+
+DataPath provides powerful navigation through nested data structures:
+
+- **Dot notation**: `projects.epics.user_stories` 
+- **Array indices**: `projects[0].epics[1]`
+- **Map/dict keys**: `metrics[2022]` or `config["database"]`
+- **Filtering**: `projects[id=543]` or `users[name="Alice"]`
+- **Chaining**: `projects[id=543].epics[1].user_stories[0].priority`
+
+### DataPath Examples
+
+```bash
+# Access array elements
+dataspec search --data data.yaml --path "projects[0].name"
+
+# Filter arrays by field value
+dataspec search --data data.yaml --path "projects[id=543].description"
+
+# Navigate nested structures
+dataspec search --data data.yaml --path "projects[0].epics[1].user_stories[0].tasks"
+
+# Access map/dictionary values
+dataspec search --data data.yaml --path "metrics[2022].performance"
+```
 
 ## 1. Overview
 
-The **Yaml Data Schema Definition Syntax** enables clear, concise modeling of structured data using YAML. It draws inspiration from OpenAPI’s schema object notation but introduces the reser## 10. Example recursive type: "Person" Schemaed `<<root>>` identifier to explicitly mark the model entry point. Schemas are designed to be both machine- and human-readable, supporting recursive and nested object types.
+The **Yaml Data Schema Definition Syntax** enables clear, concise modeling of structured data using YAML. It draws inspiration from OpenAPI’s schema object notation but introduces the reser## Example Recursive Type: "Person" Schemaed `<<root>>` identifier to explicitly mark the model entry point. Schemas are designed to be both machine- and human-readable, supporting recursive and nested object types.
 
-## 2. Core Concepts
+### Overview
 
-### 2.1 Root Definition
+DataSpec's schema syntax enables clear, concise modeling of structured data using YAML. It draws inspiration from OpenAPI's schema object notation but introduces the reserved `<<root>>` identifier to explicitly mark the model entry point. Schemas are designed to be both machine- and human-readable, supporting recursive and nested object types.
+
+## Core Concepts
+
+### Root Definition
 
 * The identifier `<<root>>` is **reserved** and denotes the root (entry point) of the schema.  
 * The root is always an object; `type: object` is implied and MUST NOT be specified.  
 * The fields of the root are defined as key-value pairs, where each value specifies the type and structure of the field.
 
-### 2.2 Object Types
+### Object Types
 
 * Objects are defined by a `properties:` section, which lists field names and their types.  
 * Each type (other than primitives or arrays) is defined at the top level with a unique name (e.g., `Project`, `Epic`).
 
-### 2.3 Arrays
+### Arrays
 
 * Use `type: array` for any field that is a list.  
 * The `items:` key specifies the type of each array element (either a primitive or a reference to another type using `$ref: '#/TypeName'`).
 
-### 2.4 Primitives
+### Primitives
 
 * Supported primitive types: `string`, `integer`, `boolean`, etc.  
 * Specify primitive type fields with `type: <primitive>`.
 
-### 2.5 Optional properties
+### Optional properties
 
 * Properties can be declared optional with the attribute “`optional`” of type `boolean` (`true` or `false`)  
 * By default properties are mandatory (as if declared with `optional: false`).
 
-### 2.6 Type References
+### Type References
 
 * Use `$ref: '#/TypeName'` to refer to other defined types.  
 * This supports recursive and nested structures (e.g., sub-tasks, sub-epics).
 
-### 2.7 Documentation
+### Documentation
 
 * Use the `description:` key to document any field or type.  
 * All documentation is optional but strongly encouraged.
 
-## 3. Types Reference
+## Types Reference
 
-This section provides a comprehensive reference of all supported types in the Yaml Data Schema Definition Syntax.
+This section provides a comprehensive reference of all supported types in DataSpec's schema definition syntax.
 
-### 3.1 Primitive Types
+### Primitive Types
 
-#### 3.1.1 String Type
+#### String Type
 ```yaml
 field_name:
   type: string
   description: "Text data"
 ```
 
-#### 3.1.2 Integer Type
+#### Integer Type
 ```yaml
 field_name:
   type: integer
   description: "Whole numbers (positive, negative, or zero)"
 ```
 
-#### 3.1.3 Number Type
+#### Number Type
 ```yaml
 field_name:
   type: number
   description: "Floating-point numbers"
 ```
 
-#### 3.1.4 Boolean Type
+#### Boolean Type
 ```yaml
 field_name:
   type: boolean
   description: "True or false values"
 ```
 
-### 3.2 Collection Types
+### Collection Types
 
-#### 3.2.1 Array Type
+#### Array Type
 Arrays contain ordered lists of items of the same type.
 
 ```yaml
@@ -105,7 +181,7 @@ matrix:
       type: number
 ```
 
-#### 3.2.2 Map Type
+#### Map Type
 Maps represent key-value collections (dictionaries/hash tables).
 
 ```yaml
@@ -149,9 +225,9 @@ locations:
 - JSON serialization converts integer keys to strings automatically
 - Maps do not allow additional properties beyond the defined value type
 
-### 3.3 Object Types
+### Object Types
 
-#### 3.3.1 Named Object Types
+#### Named Object Types
 Objects are defined at the top level with a unique name and referenced using `$ref`.
 
 ```yaml
@@ -172,7 +248,7 @@ User:
         type: string
 ```
 
-#### 3.3.2 Object References
+#### Object References
 Reference named types using the `$ref` syntax:
 
 ```yaml
@@ -185,7 +261,7 @@ Reference named types using the `$ref` syntax:
       $ref: '#/User'
 ```
 
-### 3.4 Optional Fields
+### Optional Fields
 
 Any field can be marked as optional using the `optional: true` attribute:
 
@@ -206,7 +282,7 @@ Person:
       optional: true
 ```
 
-### 3.5 Recursive Types
+### Recursive Types
 
 Types can reference themselves to create recursive structures:
 
@@ -234,7 +310,7 @@ FileSystemItem:
       optional: true
 ```
 
-### 3.6 Complex Nested Structures
+### Complex Nested Structures
 
 Combine all types to create sophisticated data models:
 
@@ -324,7 +400,7 @@ Address:
       optional: true
 ```
 
-### 3.7 Type Constraints and Validation Rules
+### Type Constraints and Validation Rules
 
 - **No Generic Objects:** The syntax does not support generic `type: object` as field types. Use named types and `$ref` instead.
 - **Strict Type Checking:** All fields must have explicit type definitions.
@@ -332,7 +408,7 @@ Address:
 - **Key Type Restrictions:** Map keys are restricted to `string` and `integer` types only.
 - **Required by Default:** All fields are required unless explicitly marked with `optional: true`.
 
-## 4. Example Schema
+## Example Schema
 
 ```yaml
 <<root>>:  
@@ -406,36 +482,36 @@ Task:
         $ref: '#/Task'
 ```
 
-## 5. How-To Author a Yaml Data Schema
+## How-To Author a Schema
 
-### 5.1 Start with the Root
+### Start with the Root
 
 * Begin your schema with the `<<root>>:` block.  
 * Define the top-level fields and their types or references.
 
-### 5.2 Define Each Type
+### Define Each Type
 
 * For each object referenced (e.g., `Project`, `Epic`), define a top-level block named exactly as referenced.  
 * Under each, specify a `properties:` block mapping field names to their types, references, or array types.
 
-### 5.3 Use Arrays and Recursion as Needed
+### Use Arrays and Recursion as Needed
 
 * For list fields, use `type: array` and specify `items:`.  
 * To enable recursive structures (like sub-tasks), reference the current type via `$ref`.
 
-### 5.4 Add Documentation
+### Add Documentation
 
 * Use `description:` to clarify the meaning of types and fields.  
 * Documenting schemas increases clarity and improves developer experience.
 
-### 5.5 Supported Types
+### Supported Types
 
 * **Primitives:** string, integer, boolean, number  
 * **Arrays:** `type: array` with `items:` (which may be a primitive or `$ref`)  
 * **Objects:** defined using `properties:`, referenced by `$ref`  
 * **No other types are needed for most use cases.**
 
-## 6. Example Data Instance
+## Example Data Instance
 
 Given the above schema, an instance might look like:
 
@@ -464,7 +540,7 @@ projects:
         sub_epics: []
 ```
 
-## 7. Design Guidelines
+## Design Guidelines
 
 * All types must be defined at the top level.  
 * Always reference other types using `$ref: '#/TypeName'`.  
@@ -472,13 +548,13 @@ projects:
 * The schema MUST have a single `<<root>>` entry point.  
 * The root object must be fully defined by its properties; no circularity at the root.
 
-## 8. Comparison to OpenAPI
+## Comparison to OpenAPI
 
 * `<<root>>` replaces OpenAPI’s `components/schemas` entry point.  
 * `type: object` is omitted where implied (root and property containers).  
 * `$ref` syntax and other conventions are preserved for familiarity and extensibility.
 
-## 9. Extensions
+## Extensions
 
 To support advanced validation, you may later extend this spec with:
 
@@ -515,17 +591,17 @@ Person:
 
 **Q: Can I validate data against these schemas?** A: Yes, with a parser or LLM-based tool. Conversion to JSON Schema is straightforward for enforcement.
 
-## **Appendix II: Using JSON for Yaml Data Schema Definitions**
+## **Appendix II: Using JSON for DataSpec Schema Definitions**
 
 ### **Overview**
 
-While YAML is preferred for its readability, all Yaml schema and data definitions may be authored in **JSON**.
+While YAML is preferred for its readability, all DataSpec schema and data definitions may be authored in **JSON**.
 
 * The schema structure is identical—simply use JSON object/array/field notation instead of YAML.
 
 * This allows compatibility with many editors, tools, and automation pipelines that work natively with JSON.
 
-### **1. Writing a Yaml Schema in JSON**
+### **1. Writing a DataSpec Schema in JSON**
 
 **YAML Example:**
 
@@ -614,7 +690,7 @@ projects:
 
 ### **5. CLI Usage**
 
-The sample `schema_val.py` will work for both YAML and JSON files, provided you use the appropriate file extension and content.
+The DataSpec CLI works with both YAML and JSON files, provided you use the appropriate file extension and content.
 
 ### **6. Example: Minimal Schema and Data in JSON**
 
@@ -648,28 +724,86 @@ The sample `schema_val.py` will work for both YAML and JSON files, provided you 
 }
 ```
 
-## Appendix III:  Usage Examples
+## Appendix III: CLI Usage Examples
+
+### Validation Commands
 
 Validate YAML data and YAML schema:
 
 ```bash
-python schema_val.py -d data.yml -s schema.yml
+dataspec validate --data data.yml --schema schema.yml
 ```
 
 Validate JSON data and JSON schema:
 
 ```bash
-python schema_val.py -d data.json -s schema.json
+dataspec validate --data data.json --schema schema.json
 ```
 
 Mix YAML and JSON:
 
 ```bash
-python schema_val.py -d data.json -s schema.yml
+dataspec validate --data data.json --schema schema.yml
 ```
 
 Force file format (e.g., file without extension):
 
 ```bash
-python schema_val.py -d mydata -s myschema --data-format json --schema-format yaml  
+dataspec validate --data mydata --schema myschema --data-format json --schema-format yaml
+```
+
+### Search Commands
+
+Search within data using DataPath expressions:
+
+```bash
+dataspec search --data data.yaml --path 'projects[0].epics[0].id'
+```
+
+Find specific elements by filtering:
+
+```bash
+dataspec search --data data.yaml --path 'projects[id=543].name'
+dataspec search --data data.yaml --path 'users[name="Alice"].email'
+```
+
+Navigate complex nested structures:
+
+```bash
+dataspec search --data data.yaml --path 'organization.departments["engineering"].employees[0].skills'
+```
+
+Access map/dictionary values:
+
+```bash
+dataspec search --data data.yaml --path 'metrics[2022].performance'
+dataspec search --data data.yaml --path 'config["database"]["host"]'
+```
+
+### Python API Examples
+
+```python
+from dataspec import load_file, validate, search
+
+# Load and validate data
+data = load_file("data.yaml")
+schema = load_file("schema.yaml")
+
+# Validate with error handling
+try:
+    validate(data, schema)
+    print("✅ Validation successful")
+except ValueError as e:
+    print(f"❌ Validation failed: {e}")
+
+# Search using DataPath
+epic_id = search(data, "projects[0].epics[0].id")
+user_story = search(data, "projects[id=543].epics[0].user_stories[priority=high]")
+config_value = search(data, "config.database.host")
+
+# Handle search errors
+try:
+    result = search(data, "nonexistent[0].field")
+except (KeyError, IndexError) as e:
+    print(f"Path not found: {e}")
 ```
